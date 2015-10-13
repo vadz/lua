@@ -1,0 +1,140 @@
+# This is an nmake-specific clone of the official Makefile.
+#
+# Unlike the official makefile, this one only builds the library by default as
+# this is all we really need. You can still build lua compiler and interpreter
+# by explicitly running "nmake /f makefile.vc all".
+#
+# This makefile supports the additional "BUILD" command line option which may
+# be set to "release" (default) or "debug" on make command line to indicate
+# whether we're building lua.lib or lua_d.lib.
+
+!if "$(BUILD)" == "debug"
+OPT = /Od
+CRT = /MDd
+DEBUG_SUFFIX = _d
+!elseif "$(BUILD)" == "release" || "$(BUILD)" == ""
+OPT = /O2
+CRT = /MD
+DEBUG_SUFFIX =
+!else
+!error BUILD must be set to either "debug" or "release" on nmake command line.
+!endif
+
+CC = cl /nologo
+CFLAGS = /DLUA_COMPAT_5_2 /W4 /Zi $(OPT) $(CRT) /wd4244 /wd4310 /wd4702
+
+# Do not call this "LIB" to avoid overwriting the LIB environment variable that
+# the linker uses.
+AR = lib /nologo
+
+LINK = link /nologo
+LDFLAGS = /debug
+
+RM = del
+
+# == END OF USER SETTINGS -- NO NEED TO CHANGE ANYTHING BELOW THIS LINE =======
+
+LUA_A = lua$(DEBUG_SUFFIX).lib
+
+CORE_O=	lapi.obj lcode.obj lctype.obj ldebug.obj ldo.obj ldump.obj lfunc.obj lgc.obj llex.obj \
+	lmem.obj lobject.obj lopcodes.obj lparser.obj lstate.obj lstring.obj ltable.obj \
+	ltm.obj lundump.obj lvm.obj lzio.obj
+LIB_O=	lauxlib.obj lbaselib.obj lbitlib.obj lcorolib.obj ldblib.obj liolib.obj \
+	lmathlib.obj loslib.obj lstrlib.obj ltablib.obj lutf8lib.obj loadlib.obj linit.obj
+BASE_O= $(CORE_O) $(LIB_O) $(MYOBJS)
+
+LUA_T=	lua$(DEBUG_SUFFIX).exe
+LUA_O=	lua.obj
+
+LUAC_T=	luac$(DEBUG_SUFFIX).exe
+LUAC_O=	luac.obj
+
+ALL_O= $(BASE_O) $(LUA_O) $(LUAC_O)
+ALL_T= $(LUA_A) $(LUA_T) $(LUAC_T)
+ALL_A= $(LUA_A)
+
+# Targets start here.
+default: $(LUA_A)
+
+all:	$(ALL_T)
+
+$(LUA_A): $(BASE_O)
+	$(AR) /out:$@ $(BASE_O)
+
+$(LUA_T): $(LUA_O) $(LUA_A)
+	$(LINK) /out:$@ $(LDFLAGS) $(LUA_O) $(LUA_A) $(LIBS)
+
+$(LUAC_T): $(LUAC_O) $(LUA_A)
+	$(LINK) /out:$@ $(LDFLAGS) $(LUAC_O) $(LUA_A) $(LIBS)
+
+clean:
+	$(RM) $(ALL_T) $(ALL_O) *.ilk *.pdb
+
+# DO NOT DELETE
+
+lapi.obj: lapi.c lprefix.h lua.h luaconf.h lapi.h llimits.h lstate.h \
+ lobject.h ltm.h lzio.h lmem.h ldebug.h ldo.h lfunc.h lgc.h lstring.h \
+ ltable.h lundump.h lvm.h
+lauxlib.obj: lauxlib.c lprefix.h lua.h luaconf.h lauxlib.h
+lbaselib.obj: lbaselib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lbitlib.obj: lbitlib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lcode.obj: lcode.c lprefix.h lua.h luaconf.h lcode.h llex.h lobject.h \
+ llimits.h lzio.h lmem.h lopcodes.h lparser.h ldebug.h lstate.h ltm.h \
+ ldo.h lgc.h lstring.h ltable.h lvm.h
+lcorolib.obj: lcorolib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lctype.obj: lctype.c lprefix.h lctype.h lua.h luaconf.h llimits.h
+ldblib.obj: ldblib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+ldebug.obj: ldebug.c lprefix.h lua.h luaconf.h lapi.h llimits.h lstate.h \
+ lobject.h ltm.h lzio.h lmem.h lcode.h llex.h lopcodes.h lparser.h \
+ ldebug.h ldo.h lfunc.h lstring.h lgc.h ltable.h lvm.h
+ldo.obj: ldo.c lprefix.h lua.h luaconf.h lapi.h llimits.h lstate.h \
+ lobject.h ltm.h lzio.h lmem.h ldebug.h ldo.h lfunc.h lgc.h lopcodes.h \
+ lparser.h lstring.h ltable.h lundump.h lvm.h
+ldump.obj: ldump.c lprefix.h lua.h luaconf.h lobject.h llimits.h lstate.h \
+ ltm.h lzio.h lmem.h lundump.h
+lfunc.obj: lfunc.c lprefix.h lua.h luaconf.h lfunc.h lobject.h llimits.h \
+ lgc.h lstate.h ltm.h lzio.h lmem.h
+lgc.obj: lgc.c lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
+ llimits.h ltm.h lzio.h lmem.h ldo.h lfunc.h lgc.h lstring.h ltable.h
+linit.obj: linit.c lprefix.h lua.h luaconf.h lualib.h lauxlib.h
+liolib.obj: liolib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+llex.obj: llex.c lprefix.h lua.h luaconf.h lctype.h llimits.h ldebug.h \
+ lstate.h lobject.h ltm.h lzio.h lmem.h ldo.h lgc.h llex.h lparser.h \
+ lstring.h ltable.h
+lmathlib.obj: lmathlib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lmem.obj: lmem.c lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
+ llimits.h ltm.h lzio.h lmem.h ldo.h lgc.h
+loadlib.obj: loadlib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lobject.obj: lobject.c lprefix.h lua.h luaconf.h lctype.h llimits.h \
+ ldebug.h lstate.h lobject.h ltm.h lzio.h lmem.h ldo.h lstring.h lgc.h \
+ lvm.h
+lopcodes.obj: lopcodes.c lprefix.h lopcodes.h llimits.h lua.h luaconf.h
+loslib.obj: loslib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lparser.obj: lparser.c lprefix.h lua.h luaconf.h lcode.h llex.h lobject.h \
+ llimits.h lzio.h lmem.h lopcodes.h lparser.h ldebug.h lstate.h ltm.h \
+ ldo.h lfunc.h lstring.h lgc.h ltable.h
+lstate.obj: lstate.c lprefix.h lua.h luaconf.h lapi.h llimits.h lstate.h \
+ lobject.h ltm.h lzio.h lmem.h ldebug.h ldo.h lfunc.h lgc.h llex.h \
+ lstring.h ltable.h
+lstring.obj: lstring.c lprefix.h lua.h luaconf.h ldebug.h lstate.h \
+ lobject.h llimits.h ltm.h lzio.h lmem.h ldo.h lstring.h lgc.h
+lstrlib.obj: lstrlib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+ltable.obj: ltable.c lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
+ llimits.h ltm.h lzio.h lmem.h ldo.h lgc.h lstring.h ltable.h lvm.h
+ltablib.obj: ltablib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+ltm.obj: ltm.c lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
+ llimits.h ltm.h lzio.h lmem.h ldo.h lstring.h lgc.h ltable.h lvm.h
+lua.obj: lua.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+luac.obj: luac.c lprefix.h lua.h luaconf.h lauxlib.h lobject.h llimits.h \
+ lstate.h ltm.h lzio.h lmem.h lundump.h ldebug.h lopcodes.h
+lundump.obj: lundump.c lprefix.h lua.h luaconf.h ldebug.h lstate.h \
+ lobject.h llimits.h ltm.h lzio.h lmem.h ldo.h lfunc.h lstring.h lgc.h \
+ lundump.h
+lutf8lib.obj: lutf8lib.c lprefix.h lua.h luaconf.h lauxlib.h lualib.h
+lvm.obj: lvm.c lprefix.h lua.h luaconf.h ldebug.h lstate.h lobject.h \
+ llimits.h ltm.h lzio.h lmem.h ldo.h lfunc.h lgc.h lopcodes.h lstring.h \
+ ltable.h lvm.h
+lzio.obj: lzio.c lprefix.h lua.h luaconf.h llimits.h lmem.h lstate.h \
+ lobject.h ltm.h lzio.h
+
+# (end of Makefile)
